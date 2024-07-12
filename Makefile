@@ -2,3 +2,6 @@
 
 test:
 	pytest
+
+format:
+	black .

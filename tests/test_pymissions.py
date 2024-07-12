@@ -35,24 +35,40 @@ def load_db_in_memory(path):
     return in_memory_db
 
 
-def dallas_db():
+def dallas_officer_incident_db():
     db_path = "test_data/dallas_ois_records.sqlite"
     return load_db_in_memory(db_path)
 
 
 # Fixture to have a shared db if we need it - probably not.
 @pytest.fixture(scope="function")
-def dallas_db_fixture():
-    with auto_close(dallas_db()) as db:
+def dallas_officer_incident_db_fixture():
+    with auto_close(dallas_officer_incident_db()) as db:
         yield db
 
 
-def test_dallas_db():
-    db = dallas_db()
+def test_pymissions():
+    db = dallas_officer_incident_db()
     pdb = PermissionedSqliteConnection(db)
-    pdb.permissions().grant("123", SqlPermission.TABLE_INSERT, SqlResource(table="*", columns="*"))
-    
-    # pm_conn.permissions().grant("123", SqlPermission.TABLE_INSERT, SqlResource(table="*", columns="*"))
-    #with get_cursor(dallas_db) as c:
-    #    c.execute("SELECT * FROM officers")
-    #    print(c.fetchall())
+
+    with get_cursor(pdb) as c:
+        c.execute("SELECT * FROM officers")
+        print(c.fetchall())
+
+    pdb.permissions().grant(
+        "123", SqlPermission.TABLE_INSERT, SqlResource(table="*", rows="*", columns="*")
+    ).grant(
+        "123", SqlPermission.TABLE_SELECT, SqlResource(table="*", rows="*", columns="*")
+    )
+
+    with get_cursor(pdb) as c:
+        c.execute("SELECT * FROM officers")
+        print(c.fetchall())
+
+    assert False
+
+
+"""
+Tests to do
+
+"""

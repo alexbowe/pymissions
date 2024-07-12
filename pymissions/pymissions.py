@@ -1,5 +1,8 @@
 import sqlite3
 from enum import Enum
+from dataclasses import dataclass
+
+from typing import Optional, Set
 
 from .utils import *
 from sqlglot import parse_one, exp
@@ -17,9 +20,11 @@ class SqlPermission(Enum):
     TABLE_DELETE = "table::delete"
 
 
+@dataclass
 class SqlResource:
-    def __init__(self, table, rows=None, columns=None):
-        pass
+    table: str
+    rows: Optional[set] = None
+    columns: Optional[set] = None
 
 
 # Object/document stores won't necessarily have a concept of rows/columns
@@ -27,8 +32,8 @@ class SqlResource:
 class SqlPermissionSet:
     def grant(self, auth_key, permission, resource):
         # store this in a dictionary and pickle it
-        pass
-    
+        return self
+
     @classmethod
     def load(cls, io):
         raise NotImplementedError("Out of scope for MVP")
@@ -38,26 +43,21 @@ class SqlPermissionSet:
     def revoke(auth_key, permission, resource):
         raise NotImplementedError("Out of scope for MVP")
 
-class PermissionedSqliteConnection:
-    # from_dialect = "sqlite"
-    # to_dialect = "sqlite"
+    def check(self, auth_key, permission, resource):
+        # if "*" in their tables then thats fine
+        # else
+        raise NotImplementedError("Out of scope for MVP")
 
-    def __init__(self, db, permissions=None):
-        self._db = db
-        self._permissions = permissions or SqlPermissionSet()
-        # TODO: update permissions in database if the database supports it natively (in other Permissioned db)
 
-    # def cursor(self):
-    #     return self._db_connection.cursor()
+class PermissionedSqliteCursor:
+    def __init__(self, parent_db, cursor):
+        self._parent_db = parent_db
+        self._cursor = cursor
 
-    def permissions(self):
-        return self._permissions
+    def __getattr__(self, name):
+        return getattr(self._cursor, name)
 
-    # TODO: implement this if we go with the view option
-    def _create_user_view_of_table(self, auth_key: str, table_name: str):
-        pass
-
-    def execute(self, auth_key: str, query: str):
+    def execute(self, query, *args, **kwargs):
         """
         Execute a query with the given auth key.
 
@@ -70,3 +70,29 @@ class PermissionedSqliteConnection:
         # get tables from query
         # create views for each table
         # execute query on view
+        return self._cursor.execute(query, *args, **kwargs)
+
+
+class PermissionedSqliteConnection:
+    # from_dialect = "sqlite"
+    # to_dialect = "sqlite"
+
+    def __init__(self, db, permissions=None):
+        self._db = db
+        self._permissions = permissions or SqlPermissionSet()
+        # TODO: update permissions in database if the database supports it natively (in other Permissioned db)
+
+    def __getattr__(self, name):
+        return getattr(self._db, name)
+
+    def cursor(self):
+        # Wrap this with something that points back to this
+        # and filters the query
+        return PermissionedSqliteCursor(self, self._db.cursor())
+
+    def permissions(self):
+        return self._permissions
+
+    # TODO: implement this if we go with the view option
+    def _create_user_view_of_table(self, auth_key: str, table_name: str):
+        pass
