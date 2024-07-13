@@ -36,23 +36,26 @@ def dallas_officer_incident_db_fixture():
         yield db
 
 
-def test_pymissions():
-    db = dallas_officer_incident_db()
-    pdb = PermissionedSqliteConnection(db)
+def test_sqlite_permissions():
+    sqlite_connection = dallas_officer_incident_db()
+    admin_connection = PermissionedSqliteConnection(sqlite_connection)
 
-    with get_cursor(pdb) as c:
+    with get_cursor(admin_connection) as c:
         c.execute("SELECT * FROM officers")
         print(c.fetchall())
 
-    pdb.permissions().grant(
+    admin_connection.permissions().grant(
         "123", SqlPermission.TABLE_INSERT, SqlResource(table="*", rows="*", columns="*")
     ).grant(
         "123", SqlPermission.TABLE_SELECT, SqlResource(table="*", rows="*", columns="*")
     )
 
-    with get_cursor(pdb) as c:
-        c.as_user("123").execute("SELECT * FROM officers")
+    user_connection = admin_connection.user_connection("123")
+    with get_cursor(user_connection) as c:
+        c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        # c.execute("SELECT * FROM officers")
         print(c.fetchall())
+        # Should have an exception
 
     assert False
 

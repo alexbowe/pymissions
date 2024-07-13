@@ -3,5 +3,5 @@
 test:
 	pytest
 
-format:
+fix:
 	black .
