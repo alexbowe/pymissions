@@ -7,6 +7,8 @@ from typing import Optional, Set
 from .utils import *
 from sqlglot import parse_one, exp
 
+ADMIN_USER = "admin"
+
 
 # Define our own exception base class for easier filtering
 class PermissionError(Exception):
@@ -38,9 +40,10 @@ class SqlPermissionSet:
     def load(cls, io):
         raise NotImplementedError("Out of scope for MVP")
 
-    # How to handle revoking subsets?
-    # Maybe a permission can be revoked?
     def revoke(auth_key, permission, resource):
+        """
+        How to handle revoking subsets of previously granted permissions?
+        """
         raise NotImplementedError("Out of scope for MVP")
 
     def check(self, auth_key, permission, resource):
@@ -50,12 +53,22 @@ class SqlPermissionSet:
 
 
 class PermissionedSqliteCursor:
-    def __init__(self, parent_db, cursor):
+    def __init__(self, parent_db, cursor, parser=None):
         self._parent_db = parent_db
         self._cursor = cursor
+        self._user = ADMIN_USER
+        self._parser = parser
 
     def __getattr__(self, name):
         return getattr(self._cursor, name)
+    
+    def as_user(self, auth_key):
+        # If we support users in connections like MySQL, should make this
+        # check the connection and see if they have permissions to change user.
+        # for now we assume
+        self._user = auth_key
+        # Update this to
+        return self
 
     def execute(self, query, *args, **kwargs):
         """
@@ -67,19 +80,19 @@ class PermissionedSqliteCursor:
         3. Execute the query
         4. Return the result
         """
+        
         # get tables from query
         # create views for each table
         # execute query on view
+        # do this as a transaction
+        # so we can easily roll back something if needed
         return self._cursor.execute(query, *args, **kwargs)
 
-
 class PermissionedSqliteConnection:
-    # from_dialect = "sqlite"
-    # to_dialect = "sqlite"
-
-    def __init__(self, db, permissions=None):
+    def __init__(self, db, permissions=None, user=ADMIN_USER):
         self._db = db
         self._permissions = permissions or SqlPermissionSet()
+        self._user = user
         # TODO: update permissions in database if the database supports it natively (in other Permissioned db)
 
     def __getattr__(self, name):

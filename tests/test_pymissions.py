@@ -12,17 +12,6 @@ from pymissions import *
 
 #     # Optionally, you can list the tables in the database
 #     cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-#     tables = cursor.fetchall()
-
-#     if tables:
-#         print("Tables in the database:")
-#         for table in tables:
-#             print(f"- {table[0]}")
-#     else:
-#         print("No tables found in the database.")
-
-#     # Don't forget to close the connection when you're done
-#     conn.close()
 
 
 def load_db_in_memory(path):
@@ -62,7 +51,7 @@ def test_pymissions():
     )
 
     with get_cursor(pdb) as c:
-        c.execute("SELECT * FROM officers")
+        c.as_user("123").execute("SELECT * FROM officers")
         print(c.fetchall())
 
     assert False
