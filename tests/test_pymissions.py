@@ -38,26 +38,42 @@ def dallas_officer_incident_db_fixture():
 
 def test_sqlite_permissions():
     sqlite_connection = dallas_officer_incident_db()
-    admin_connection = PermissionedSqliteConnection(sqlite_connection)
+    system_connection = PermissionedSqliteConnection(sqlite_connection)
 
-    with get_cursor(admin_connection) as c:
+    with get_cursor(system_connection) as c:
         c.execute("SELECT * FROM officers")
-        print(c.fetchall())
+        #print(c.fetchall())
 
-    admin_connection.permissions().grant(
-        "123", SqlPermission.TABLE_INSERT, SqlResource(table="*", rows="*", columns="*")
-    ).grant(
-        "123", SqlPermission.TABLE_SELECT, SqlResource(table="*", rows="*", columns="*")
+    user_connection = system_connection.user_connection("123")
+
+    try:
+        with get_cursor(user_connection) as c:
+            c.execute("SELECT * FROM officers")
+    except sqlite3.DatabaseError as e:
+        if "not authorized" not in str(e) and "prohibited" not in str(e):
+            assert False, "Did not raise an authorization error"
+    else:
+        assert False, "Did not raise an authorization error"
+
+    system_connection.permissions().grant(
+        ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="case_number")),
+        ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="race")),
+        ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="gender")),
+        ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="first_name")),
+        ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="last_name")),
+        ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="full_name")),
     )
+    
+    # .grant(
+    #    "123", SqlPermission.TABLE_INSERT, SqlResource(table="officers", column="*")
+    # )
 
-    user_connection = admin_connection.user_connection("123")
+    print(user_connection._permissions._permissions["123"]._tables)
     with get_cursor(user_connection) as c:
-        c.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        # c.execute("SELECT * FROM officers")
-        print(c.fetchall())
-        # Should have an exception
+        c.execute("SELECT * FROM officers")
+        # print(c.fetchall())
 
-    assert False
+    #assert False
 
 
 """

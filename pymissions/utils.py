@@ -10,6 +10,6 @@ def auto_close(resource):
 
 
 @contextmanager
-def get_cursor(db_connection):
-    with auto_close(db_connection.cursor()) as cursor:
+def get_cursor(connection):
+    with auto_close(connection.cursor()) as cursor:
         yield cursor
