@@ -59,21 +59,24 @@ class PermissionSet(ABC):
 
 class BasicUserPermissions(UserPermissions):
     def __init__(self):
-        self._tables = Tree()
+        self._tables = defaultdict(lambda: defaultdict(set))
 
     def grant(self, permission, resource):
-        self._tables[resource.table][resource.column] = permission
+        self._tables[resource.table][resource.column].add(permission)
         return self
 
     def check(self, permission, resource):
+        # TODO: add way to configure this so we can ignore rather than deny.
+        # This would allow people to select * and only get the columns
+        # they have access to. For simplicity we do it this way for now.
         if resource.table not in self._tables:
             return PermissionStatus.DENIED
 
         if resource.column not in self._tables[resource.table]:
-            return PermissionStatus.IGNORED
+            return PermissionStatus.DENIED
 
-        if self._tables[resource.table][resource.column] != permission:
-            return PermissionStatus.IGNORED
+        if permission not in self._tables[resource.table][resource.column]:
+            return PermissionStatus.DENIED
 
         return PermissionStatus.GRANTED
 
@@ -196,4 +199,9 @@ Stretch goals:
 - Support for wildcard specifications
 - Support for wildcard queries returning empty columns when they don't have access to the columns
 - Operations...
+
+
+# Philosophy
+- Be stricter in the first versions - this avoids people coming to rely on
+  behavior that changes. (e.g. IGNORE vs DENY)
 """

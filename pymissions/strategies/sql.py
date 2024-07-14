@@ -12,5 +12,6 @@
 #     # so we can easily roll back something if needed
 #     return self._cursor.execute(query, *args, **kwargs)
 
+
 class SqlParsingStrategy:
     pass

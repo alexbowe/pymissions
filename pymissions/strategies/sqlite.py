@@ -2,6 +2,7 @@ import sqlite3
 from typing import Any
 
 from pymissions.pymissions import *
+from .sqlite_codes import SQLITE_CODE_TO_STRING
 
 
 SQLITE_ACTION_TO_PERMISSION_MAP = {
@@ -22,6 +23,7 @@ class SqliteCallbackAuthorizor:
     # TODO: Add other universally allowed permissions such as transactions...
     universally_allowed_actions = {
         sqlite3.SQLITE_SELECT,  # SQLITE_SELECT is whether users have the right to select at all. Can be inferred.
+        sqlite3.SQLITE_TRANSACTION,
     }
 
     def __init__(self, permissions, user):
@@ -29,23 +31,31 @@ class SqliteCallbackAuthorizor:
         self._user = user
 
     def __call__(self, action, arg1, arg2, db_name, trigger_name):
-        # return sqlite3.SQLITE_OK
         # fmt: off
+        print(SQLITE_CODE_TO_STRING[action], arg1, arg2, db_name, trigger_name)
+
+        print("a")
         if self._user == SYSTEM_USER: return sqlite3.SQLITE_OK
+        print("b")
         if action in self.universally_allowed_actions: return sqlite3.SQLITE_OK
-        if action not in SQLITE_ACTION_TO_PERMISSION_MAP: return sqlite3.SQLITE_DENY
+        print("c")
+        if action not in SQLITE_ACTION_TO_PERMISSION_MAP:
+            # TODO: Log the unsupported action and user
+            print("d")
+            return sqlite3.SQLITE_DENY
         # fmt: on
 
         permission = SQLITE_ACTION_TO_PERMISSION_MAP.get(action)
 
-        if permission == SqlPermission.TABLE_SELECT:
-            table_name, column_name = arg1, arg2
-            status = self._permissions.check(
-                self._user, permission, SqlResource(table_name, column_name)
-            )
-            return SQLITE_STATUS_MAP[status]
+        table_name, column_name = arg1, arg2
 
-        return sqlite3.SQLITE_DENY
+        status = self._permissions.check(
+            self._user, permission, SqlResource(table_name, column_name)
+        )
+        print(status)
+        result = SQLITE_STATUS_MAP[status]
+        print("response:", SQLITE_CODE_TO_STRING[result])
+        return result
 
 
 class PermissionedSqliteDb(PermissionedSqlDb):
