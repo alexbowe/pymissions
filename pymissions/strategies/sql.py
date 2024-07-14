@@ -12,6 +12,14 @@
 #     # so we can easily roll back something if needed
 #     return self._cursor.execute(query, *args, **kwargs)
 
+from pymissions import PermissionStrategy
 
-class SqlParsingStrategy:
-    pass
+from sqlglot import parse_one, exp
+
+class SqlParsingStrategy(PermissionStrategy):
+    def __init__(self, dialect, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._dialect = dialect
+
+    def wrap_execute(self, cursor, query):
+        pass

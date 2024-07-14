@@ -100,6 +100,10 @@ def test_sqlite_permissions(dallas_officer_incident_db_fixture):
             result = c.fetchone()
             assert result[0] == "John", "UPDATE query did not work as expected"
 
+def test_sql_parsing_strategy():
+    strategy = SqlParsingStrategy(dialect="sqlite")
+    assert False
+
 
 """
 TODO:

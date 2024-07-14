@@ -1,8 +1,11 @@
 import sqlite3
-from typing import Any
+import logging
 
 from pymissions.pymissions import *
 from .sqlite_codes import SQLITE_CODE_TO_STRING
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 SQLITE_ACTION_TO_PERMISSION_MAP = {
@@ -18,11 +21,10 @@ SQLITE_STATUS_MAP = {
     PermissionStatus.IGNORED: sqlite3.SQLITE_IGNORE,
 }
 
-
 class SqliteCallbackAuthorizor:
-    # TODO: Add other universally allowed permissions such as transactions...
     universally_allowed_actions = {
-        sqlite3.SQLITE_SELECT,  # SQLITE_SELECT is whether users have the right to select at all. Can be inferred.
+        # SQLITE_SELECT is whether users have the right to select at all. Can be inferred.
+        sqlite3.SQLITE_SELECT,
         sqlite3.SQLITE_TRANSACTION,
     }
 
@@ -30,32 +32,28 @@ class SqliteCallbackAuthorizor:
         self._permissions = permissions
         self._user = user
 
+    @log_inputs_and_outputs(
+        LOGGER,
+        format_function=lambda func: "SqliteCallbackAuthorizor",
+        format_input= lambda *args, **kwargs: f"{SQLITE_CODE_TO_STRING[args[1]]}, {', '.join(map(str, args[2:]))}",
+        format_output=SQLITE_CODE_TO_STRING.get,
+    )
     def __call__(self, action, arg1, arg2, db_name, trigger_name):
-        # fmt: off
-        print(SQLITE_CODE_TO_STRING[action], arg1, arg2, db_name, trigger_name)
+        if self._user == SYSTEM_USER:
+            return sqlite3.SQLITE_OK
+        if action in self.universally_allowed_actions:
+            return sqlite3.SQLITE_OK
 
-        print("a")
-        if self._user == SYSTEM_USER: return sqlite3.SQLITE_OK
-        print("b")
-        if action in self.universally_allowed_actions: return sqlite3.SQLITE_OK
-        print("c")
         if action not in SQLITE_ACTION_TO_PERMISSION_MAP:
-            # TODO: Log the unsupported action and user
-            print("d")
+            LOGGER.warning(f"Unsupported action: {action}")
             return sqlite3.SQLITE_DENY
-        # fmt: on
 
         permission = SQLITE_ACTION_TO_PERMISSION_MAP.get(action)
-
         table_name, column_name = arg1, arg2
-
         status = self._permissions.check(
             self._user, permission, SqlResource(table_name, column_name)
         )
-        print(status)
-        result = SQLITE_STATUS_MAP[status]
-        print("response:", SQLITE_CODE_TO_STRING[result])
-        return result
+        return SQLITE_STATUS_MAP[status]
 
 
 class PermissionedSqliteDb(PermissionedSqlDb):
