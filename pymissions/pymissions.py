@@ -69,12 +69,12 @@ class BasicUserPermissions(UserPermissions):
         if resource.table not in self._tables:
             return PermissionStatus.DENIED
 
-        # TODO: Add support for ignored for columns that they dont have read access to.
         if resource.column not in self._tables[resource.table]:
-            return PermissionStatus.DENIED
+            return PermissionStatus.IGNORED
 
         if self._tables[resource.table][resource.column] != permission:
-            return PermissionStatus.DENIED
+            return PermissionStatus.IGNORED
+
         return PermissionStatus.GRANTED
 
 
@@ -196,19 +196,4 @@ Stretch goals:
 - Support for wildcard specifications
 - Support for wildcard queries returning empty columns when they don't have access to the columns
 - Operations...
-
-
- # def _execute_parse(self, query, *args, **kwargs):
-    #     Execute a query with the given auth key.
-    #     This method should be implemented by subclasses to:
-    #     1. Parse the query
-    #     2. Check the permissions
-    #     3. Execute the query
-    #     4. Return the result
-    #     # get tables from query
-    #     # create views for each table
-    #     # execute query on view
-    #     # do this as a transaction
-    #     # so we can easily roll back something if needed
-    #     return self._cursor.execute(query, *args, **kwargs)
 """

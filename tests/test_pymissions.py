@@ -60,5 +60,16 @@ def test_sqlite_permissions(dallas_officer_incident_db_fixture):
     with auto_close(db.connect(IN_MEMORY_DB_PATH, user="123")) as user_conn:
         with get_cursor(user_conn) as c:
             c.execute("SELECT * FROM officers")
+            print(c.fetchall())
 
     assert False
+
+
+"""
+TODO:
+- Updates
+- Joins
+- Subqueries
+- Views
+- Transactions
+"""

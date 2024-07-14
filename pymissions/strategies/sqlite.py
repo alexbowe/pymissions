@@ -58,10 +58,13 @@ class PermissionedSqliteDb(PermissionedSqlDb):
 
 
 class SqliteCallbackStrategy(PermissionStrategy):
+    """Native SQLite permissioning strategy that uses callback functions."""
+
     def wrap_execute(self, cursor, query):
         connection = cursor._connection
         db = connection._db
 
+        # TODO: This should be done atomically
         connection._native_connection.set_authorizer(
             SqliteCallbackAuthorizor(db.permissions(), connection.user)
         )
