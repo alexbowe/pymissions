@@ -60,6 +60,12 @@ class PermissionedSqliteDb(PermissionedSqlDb):
     def __init__(self, strategy=None):
         strategy = strategy or SqliteCallbackStrategy()
         super().__init__(strategy)
+    
+    def _get_columns_of_table(self, connection, table_name):
+        with get_cursor(connection._native_connection) as c:
+            c.execute(f"PRAGMA table_info({table_name})")
+            columns = {row[1] for row in c.fetchall()}
+            return columns
 
     def _base_connect(self, *args, **kwargs):
         return sqlite3.connect(*args, **kwargs)

@@ -31,7 +31,7 @@ def dallas_officer_incident_db_fixture():
         yield db
 
 
-def test_sqlite_permissions(dallas_officer_incident_db_fixture):
+def test_sqlite_callback_strategy(dallas_officer_incident_db_fixture):
     db = PermissionedSqliteDb(strategy=SqliteCallbackStrategy())
 
     with auto_close(db.connect(TEST_DB_PATH)) as conn:
@@ -100,9 +100,44 @@ def test_sqlite_permissions(dallas_officer_incident_db_fixture):
             result = c.fetchone()
             assert result[0] == "John", "UPDATE query did not work as expected"
 
-def test_sql_parsing_strategy():
-    strategy = SqlParsingStrategy(dialect="sqlite")
+def test_sql_parsing_strategy(dallas_officer_incident_db_fixture):
+    db = PermissionedSqliteDb(strategy=SqlParsingStrategy(dialect="sqlite"))
+
+    # with auto_close(db.connect(TEST_DB_PATH)) as conn:
+    #     with get_cursor(conn) as c:
+    #         c.execute("SELECT * FROM officers")
+    with auto_close(db.connect(TEST_DB_PATH, user="123")) as conn:
+        with get_cursor(conn) as c:
+            #c.execute("SELECT * FROM officers")
+            c.execute("SELECT first_name,* FROM officers,incidents")
     assert False
+
+    # try:
+    #     with auto_close(db.connect(TEST_DB_PATH, user="123")) as user_conn:
+    #         with get_cursor(user_conn) as c:
+    #             c.execute("SELECT * FROM officers")
+    # except sqlite3.DatabaseError as e:
+    #     assert is_authorization_error(e), "Raised a non-authorization error"
+    # else:
+    #     assert False, "Did not raise an authorization error"
+
+    # # fmt: off
+    # db.permissions().grant(
+    #     ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="case_number")),
+    #     ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="race")),
+    #     ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="gender")),
+    #     ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="first_name")),
+    #     ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="last_name")),
+    #     ("123", SqlPermission.TABLE_SELECT, SqlResource(table="officers", column="full_name")),
+    # )
+    # # fmt: on
+
+    # with auto_close(db.connect(TEST_DB_PATH, user="123")) as user_conn:
+    #     with get_cursor(user_conn) as c:
+    #         c.execute("SELECT * FROM officers")
+    #         # print(c.fetchall())
+    
+    # assert False
 
 
 """

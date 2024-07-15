@@ -113,13 +113,13 @@ class PermissionStrategy(ABC):
 class PermissionedSqlCursor:
     def __init__(self, connection, cursor):
         self._connection = connection
-        self._cursor = cursor
+        self._native_cursor = cursor
 
     def __getattr__(self, name):
-        return getattr(self._cursor, name)
+        return getattr(self._native_cursor, name)
 
     def _native_execute(self, query):
-        return self._cursor.execute(query)
+        return self._native_cursor.execute(query)
 
     def execute(self, query):
         return self._connection._db._strategy.wrap_execute(self, query)
@@ -137,6 +137,9 @@ class PermissionedSqlConnection:
 
     def cursor(self):
         return PermissionedSqlCursor(self, self._native_connection.cursor())
+    
+    def get_columns_of_table(self, table_name):
+        return self._db._get_columns_of_table(self, table_name)
 
     def __getattr__(self, name):
         return getattr(self._native_connection, name)
@@ -161,6 +164,9 @@ class PermissionedSqlDb(ABC):
 
     @abstractmethod
     def _base_connect(self, *args, **kwargs): ...
+
+    @abstractmethod
+    def _get_columns_of_table(self, connection, table_name): ...
 
 
 """
